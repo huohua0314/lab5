@@ -8,7 +8,7 @@ private:
     client();
 public:
     
-    void run();
+   
 };
 
 #endif
