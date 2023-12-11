@@ -9,18 +9,48 @@
 #include <string.h>
 class sock{
 private:
-    sock() : connected{false}, binded{false}
-    {
-        socket_id = socket(AF_INET, SOCK_STREAM, 0);
-        if(socket_id < 0)
-            std::cout << "socket created failed" << std::endl;
-    }    
+    
 
     bool connected;
     bool binded;
     int socket_id;
 
 public:
+
+    sock() : connected{false}, binded{false}
+    {
+        socket_id = socket(AF_INET, SOCK_STREAM, 0);
+        if(socket_id < 0)
+        {
+            std::cout << "socket created failed" << std::endl;
+            exit(-1);
+        }
+        
+    }  
+
+    ~sock() {
+        if(connected)
+            close(socket_id);
+    }  
+
+    socklen_t sock_accept(struct sockaddr * addr, socklen_t *len)
+    {
+        socklen_t re = accept(socket_id, addr, len);
+        if(re == -1)
+        {
+            std::cout   << "accept fail" << std::endl;
+            exit(-1);
+        }
+        return re;
+    }
+
+    void sock_listen()
+    {
+        listen(socket_id,5);
+    }
+
+
+
     void sock_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     {
         if(!binded)
@@ -34,6 +64,7 @@ public:
             exit(EXIT_FAILURE);
         }
     }
+
     void sock_close()
     {
         if(close(socket_id) == -1);
@@ -43,42 +74,49 @@ public:
         }
         connected = false;
     }
+
     void sock_bind(const struct sockaddr *addr, socklen_t addrlen)
     {
-        if(bind(socket_id, addr, addrlen) < 0);
+        std::cout << socket_id <<std::endl;
+        if(bind(socket_id, addr, addrlen) < 0)
         {
+            
             std::cout << "bind fail" << std::endl;
             return ;
         }
         binded = true;
     }
-    ssize_t sock_send( message m, int flags = 0)
-    {
-        if(!connected)
-        {
-            std::cout << "please connected" << std::endl;
-            return -1;
-        }
-        send(socket_id, &m, m.len + 1, flags); //type + info
-    }
-    message sock_recv(   int flags = 0)
-    {
-        char buf[MAXLEN];
-        int len;
-        message got;
-    
-        if(!connected)
-        {
-            std::cout << "please connected" << std::endl;
-            got.type = -1;
-            return got;
-        } 
 
-        len = recv(socket_id, buf, MAXLEN , flags);
-        got.type = buf[0];
-        memcpy(got.info, buf + 1, len - 1);
-        got.len = len - 1;
-    }
+    // ssize_t sock_send( message m, int flags = 0)
+    // {
+    //     if(!connected)
+    //     {
+    //         std::cout << "please connected" << std::endl;
+    //         return -1;
+    //     }
+    //     send(socket_id, &m, m.len + 1, flags); //type + info
+    // }
+
+    // message sock_recv(   int flags = 0)
+    // {
+    //     char buf[MAXLEN];
+    //     int len;
+    //     message got;
+    
+    //     if(!connected)
+    //     {
+    //         std::cout << "please connected" << std::endl;
+    //         got.type = -1;
+    //         return got;
+    //     } 
+
+    //     len = recv(socket_id, buf, MAXLEN , flags);
+    //     got.type = buf[0];
+    //     memcpy(got.info, buf + 1, len - 1);
+    //     got.len = len - 1;
+
+    //     return got;
+    // }
 };  
 
 #endif

@@ -1,0 +1,6 @@
+message的type对应要传递的数据包类型
+t:time request, 服务器返回的消息存当前时间对应的秒数，参考time()函数
+n:name request, 客户端收到message的buffer中包含服务器的名称
+l:list request, 服务器返回当前连接的所有的client_socket_id
+s:send request, 客户端向着服务器发送请求，给另一个客户端发送信息，将另一个客户端的socket_id直接存在message的开头。
+d:disconnect, 服务器不会返回信息，直接断开连接

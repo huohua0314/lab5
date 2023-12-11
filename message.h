@@ -7,7 +7,6 @@ typedef struct  Message message;
 struct Message{
     char type;
     char info[MAXLEN];
-    int len;
 };
 
 #endif
