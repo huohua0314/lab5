@@ -2,10 +2,10 @@
 
 char* name = "my_server";
 server::server() : server_sock{}{
-    struct sockaddr_in addr;
+    struct sockaddr_in addr;  // 存储服务器的地址信息
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY); // 服务器将监听任何可用的网络接口，而不仅仅是绑定到一个特定的IP地址
+    addr.sin_port = htons(port); // 将端口号从主机字节序转换为网络字节序
     server_sock.sock_bind((struct sockaddr *) &addr, sizeof(addr));
     server_sock.sock_listen();
 }
@@ -20,12 +20,13 @@ void server::accept(){
 
         mapMutex.lock();
         clients[new_socket] = client{new_socket,client_addr};
-        mapMutex.unlock(); // provent map be manapulated by two threads
+        mapMutex.unlock(); // prevent map be manipulated by two threads
 
 
+        // creat a new thread
         pthread_t new_client;
         client client_ = client{new_socket, client_addr};
-        if(pthread_create(&new_client,nullptr, client_process , & client_ ) != 0)
+        if(pthread_create(&new_client,nullptr, client_process , & client_ ) != 0) // &client_: 这是传递给 client_process 函数的参数
         {
             std::cout << "thread create error" << std::endl;
             exit(-1);
@@ -38,6 +39,7 @@ void *client_process(void * ptr){
     client * new_client =  (client *)ptr;
     int client_fd = new_client->sock_fd;
     Message m;
+    Message tm; // message transfer to another client
 
     char buf[MAXLEN];
     int bytegot;
@@ -59,7 +61,7 @@ void *client_process(void * ptr){
 
         if(client_type == 't')
         {
-            std::cout << "tiem request from " << client_fd << std::endl;
+            std::cout << "time request from " << client_fd << std::endl;
             m.type = 't';
             time_t currentTime;
             time(&currentTime);
@@ -93,21 +95,35 @@ void *client_process(void * ptr){
         }
         else if(client_type == 's')
         {
-            int next_fd = *(int *) buf+1;
+            int next_fd = *(int *) buf+1;  // 把buf+1及之后的整数取出来
             bool find = false;
 
             m.type = 's'; //transfer message
-            
+            tm.type = 'm';
+
             mapMutex.lock();
             auto it = clients.find(next_fd);
             find = it != clients.end();
             mapMutex.unlock();
 
             if(find = false)
+            {
                 std::cout << "client not found" << std::endl;
-            else
-                send(next_fd,buf + 1 + sizeof(int),bytegot - 1- sizeof(int),0);
-
+                strncpy(m.info, "send unsuccessfully", MAXLEN);
+                send(client_fd, &m, 1 + strlen("send unsuccessfully"),0);
+            } 
+            else // ID|IP|message
+            {
+                char addr_str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &(new_client->addr.sin_addr), addr_str, INET_ADDRSTRLEN);
+                snprintf(tm.info, sizeof(tm.info), "%d%s", client_fd,addr_str);
+                strncat(tm.info, buf + 1 + sizeof(int), bytegot - 1- sizeof(int));
+                if(send(next_fd,&m,strlen(m.info),0)>0)// 这里信息会不会太长？
+                {
+                    strncpy(m.info, "send successfully", MAXLEN);
+                    send(client_fd, &m, 1 + strlen("send successfully"),0);
+                }
+            } 
         }
         else if(client_type == 'd')
         {
