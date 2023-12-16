@@ -16,3 +16,4 @@ u send message unsuccessfully, u|error message
 
 indicator packet:
 m receive message from another client, m|ID|IP|port|message
+目前客户端发消息部分有点问题，因为需要一个记录消息长度的量，但是目前没有
