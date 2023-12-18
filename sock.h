@@ -33,6 +33,12 @@ public:
             close(socket_id);
     }  
 
+    int get_sockid()
+    {
+        return socket_id;
+    }
+
+    
     socklen_t sock_accept(struct sockaddr * addr, socklen_t *len)
     {
         socklen_t re = accept(socket_id, addr, len);
