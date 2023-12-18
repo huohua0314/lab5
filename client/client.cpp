@@ -5,9 +5,19 @@ client::client(char *serAddress,int port) : client_sock{}{
     struct sockaddr_in addr;  // 存储服务器的地址信息
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = inet_addr(serAddress); // 绑定指定服务器地址
-    addr.sin_port = htons(port); // 将端口号从主机字节序转换为网络字节序
+    addr.sin_port = htons(3190); // 将端口号从主机字节序转换为网络字节序
+    std::cout<<"port: "<<port<<std::endl;
+    std::cout<<"address: "<<serAddress<<std::endl;
+    std::cout<<"port: "<<addr.sin_port<<std::endl;
+    std::cout<<"address: "<<addr.sin_addr.s_addr<<std::endl;
     is_connect = false;
-    client_sock.sock_connect(client_sock.get_sockid(),(struct sockaddr *) &addr, sizeof(addr));
+    // 这里直接用connect，因为客户端不需要绑定,而sock_connect只有在绑定之后才能使用
+    if(connect(client_sock.get_sockid(),(struct sockaddr *) &addr, sizeof(addr)) < 0)
+        {
+            std::cout << "connect fail" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        printf("connected\n");
     is_connect = true;
 }
 
@@ -59,7 +69,10 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
                     continue;
                 }
                 m.type = 'c';
-                client myclient(argv[1],(int)argv[2]); // 只能初始化一次，怎么办？
+
+                std::cout<<"argv[2]: "<<argv[2]<<std::endl;
+                std::cout<<"argv[2]: "<<atoi(argv[2])<<std::endl;
+                client myclient(argv[1],atoi(argv[2])); // port转换有点问题
                 sock_id = myclient.get_clientsockid();
                 receiver = myclient.create_thread(thread_receiver);
                 sender = myclient.create_thread(thread_sender);
@@ -117,7 +130,7 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
                 std::cin>>client_id;
                 std::cout<<"Please enter message:\n";
                 scanf("\n");
-                fgets(m.info,MAXLEN,stdin);  // 县输入目标client id ，再输入des
+                fgets(m.info,MAXLEN,stdin);  // 先输入目标client id ，再输入des
                 snprintf(m.info,MAXLEN,"%d%s",client_id,m.info);
                 m.type = 's';
                 sem_post(&bin_sem);
@@ -141,7 +154,7 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
 }
  
 void *thread_receiver(void *arg) {
-    int sockfd = (int)arg;
+    int sockfd = (long)arg;
 
     while(1){
         message m1;
@@ -155,7 +168,7 @@ void *thread_receiver(void *arg) {
 
 /* the thread to send message */
 void *thread_sender(void *arg) {
-    int sockfd = (int)arg;
+    int sockfd = (long)arg;
 
     sem_wait(&bin_sem);
     while(1){
@@ -168,9 +181,9 @@ void *thread_sender(void *arg) {
 
 int getMessage(message* m,int client_sockfd){
     int n=rio_readn(client_sockfd, m, sizeof(int)*3);
-    if(n!=sizeof(int)*3){
+    if(n!=sizeof(int)*3){   // 当输入port之后，会出现报错
         close(client_sockfd);
-        std::cout<<"Read head wrong\n";
+        std::cout<<"Read head wrong\n";  // 出现报错
         return 0;
     }
 

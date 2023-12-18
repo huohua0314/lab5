@@ -3,6 +3,7 @@
 
 #include "../sock.h"
 #include <semaphore.h>
+#include <pthread.h>
 // 怎么实现主线程和子线程互发
 
 sem_t bin_sem;
