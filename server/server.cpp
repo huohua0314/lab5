@@ -161,6 +161,18 @@ void *client_process(void * ptr){
 
             std::cout<< "client_server " << client_fd << "closed" << std::endl;
 
+            // 从client中删除关闭了的client
+            map<int ,client>::iterator it;
+            for(it=clients.begin();it!=clients.end();it++)
+            {
+                if ((*it).first==client_fd)
+                {
+                    break;
+                }
+            }
+            mapMutex.lock();
+            clients.erase(it);
+            mapMutex.unlock();
             pthread_exit(NULL);
         }
         else{
