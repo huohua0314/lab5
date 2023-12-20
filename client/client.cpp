@@ -46,6 +46,7 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
     {
         std::string server_ip;
         int server_port;
+        std::string dest_id,content;
         std::cout<<"the client start:\n 0-> exit \n 1-> connect \n 2-> disconnect \n 3-> get Time \n 4-> get Name \n 5-> send Message to other client\n 6-> get all clients\n";
         std::cin>>choose;
         switch(choose)
@@ -71,11 +72,11 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
                 std::cin >> server_port;
                 myclient.c_connect(server_ip.c_str(),server_port);
                 // m.type = 'c';
-                sender = myclient.create_thread(thread_sender); // 每次receive之后会send
+                sender = myclient.create_thread(thread_sender); 
                 receiver = myclient.create_thread(thread_receiver);
 
                 res = sem_init(&bin_sem,0,0);
-                if(res)
+                if(res)  // 返回-1
                 {
                     std::cout<<"Semaphore initialization failed\n";
                     close(sock_id);
@@ -83,7 +84,7 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
                 }
                 break;
             }
-            case 2:  //"Read head wrong"是getMessage的问题，之后肯定要修改 //disconnect
+            case 2:  
             {
                 if(!is_connect)
                 {
@@ -111,7 +112,7 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
                 exit(0);
                 break;
             }
-            case 3:  // time 问题：不会从服务器端返回结果，返回之后无法跳出
+            case 3:  // time
             {
                 if(!is_connect)
                 {
@@ -135,22 +136,25 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
                 sem_post(&bin_sem);
                 break;
             }
-            case 5:  // send message   IP|message
+            case 5:  // send message   s|ID|message
             {
                 if(!is_connect)
                 {
                     std::cout<<"Hasn't been connected yet\n";
                     continue;
                 }
-
-                printf("enter the client id you want to send to:  ");
-                int client_id;
-                std::cin>>client_id;
-                std::cout<<"Please enter message:\n";
-                scanf("\n");
-                fgets(m.info,MAXLEN,stdin);  // 先输入目标client id ，再输入des
-                snprintf(m.info,MAXLEN,"%d%s",client_id,m.info);
                 m.type = 's';
+                m.info[0] = 0;
+                std::cout<<"enter the client id you want to send to:  ";
+                std::cin>>dest_id;
+                std::cin.ignore();
+                std::cout<<"Please enter message:\n";
+                getline(std::cin,content);
+
+                inform += dest_id;
+                inform += content;
+            
+                strcpy(m.info,inform.c_str());  
                 sem_post(&bin_sem);
                 break;
             }
@@ -192,6 +196,7 @@ void *thread_receiver(void *arg) {
 /* the thread to send message */
 void *thread_sender(void *arg) {
     int sockfd = (long)arg;
+    
     // int value=1;
     // sem_getvalue(&bin_sem,&value);
     // std::cout<<"out:"<<value<<std::endl;
@@ -202,7 +207,10 @@ void *thread_sender(void *arg) {
         // std::cout<<"in: "<<value<<std::endl;
         if(m.type=='s')
         {
-            send(sockfd, &m, 1,0);
+            std::cout<<"sending..."<<std::endl;
+            std::cout<<"message: "<<m.info<<std::endl;
+            send(sockfd, &m, inform.length()+1,0);
+            inform.clear();
         }
         else
             send(sockfd, &m, 1,0);  // 修改
