@@ -47,6 +47,8 @@ void *client_process(void * ptr){
     std::cout << "connect established:" << std::endl  << "client_sock:" <<  client_fd <<std::endl;
     while(1)
     {
+        memset(buf,0,MAXLEN);
+        memset(&m,0,sizeof(m));
         std::cout<<"server read again"<<std::endl;
         
         bytegot = recv(client_fd, buf, MAXLEN, 0);  // 返回长度
@@ -58,7 +60,8 @@ void *client_process(void * ptr){
 
         char client_type = buf[0] ;
 
-
+        std::cout<<"type:" <<client_type << std::endl;
+        std::cout<<"byte:" <<bytegot << std::endl;
         map<int, client> temp;
 
         if(client_type == 't')
@@ -86,6 +89,7 @@ void *client_process(void * ptr){
             std::cout << "list request from " << client_fd << std::endl;
             m.type = 'l';
             int  pos = 0;
+            int offset;
             
             mapMutex.lock();
             temp = clients;
@@ -93,11 +97,13 @@ void *client_process(void * ptr){
 
             for(auto it : temp)
             {
-                memcpy(m.info+pos, &it.first, sizeof(int));
-                pos += 4;
+                in_port_t client_port = ntohs(it.second.addr.sin_port);
+                char ip_str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET,&(it.second.addr.sin_addr),ip_str,INET_ADDRSTRLEN);
+                offset = sprintf(m.info+pos,"SOCKET_ID: %d | IP: %s | Port: %u\n", it.first, ip_str, client_port );
+                pos += offset;
             }
 
-            std::cout<<"list item:"<<std::endl;
             // pos = 0;
             // for(auto it:temp)
             // {
@@ -110,8 +116,12 @@ void *client_process(void * ptr){
         }
         else if(client_type == 's')
         {
-            int next_fd = *(int *) buf+1;  // 把buf+1及之后的整数取出来
+            int next_fd = *(int * ) (buf+1);  // 把buf+1及之后的整数取出来
+            int test = *(int * ) (buf+2);
             bool find = false;
+            std::cout << "##sdsdsdss##" <<buf[4] <<std::endl;
+            std::cout << "send to :"<< next_fd <<std::endl;
+            std::cout << "send to :"<< test <<std::endl;
 
             m.type = 's'; //transfer message
             // tm.type = 'm';

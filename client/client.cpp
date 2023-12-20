@@ -1,5 +1,7 @@
 #include "client.h"
-
+#include <mutex>
+std::mutex mutexLen;
+int sendLen;
 // client需要用户输入IP地址和port
 void client::c_connect(const char *serAddress,int port){
     struct sockaddr_in addr;  // 存储服务器的地址信息
@@ -44,6 +46,7 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
     void * thread_result;
     while(1)
     {
+        char buf[MAXLEN];
         std::string server_ip;
         int server_port;
         std::cout<<"the client start:\n 0-> exit \n 1-> connect \n 2-> disconnect \n 3-> get Time \n 4-> get Name \n 5-> send Message to other client\n 6-> get all clients\n";
@@ -145,12 +148,16 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
 
                 printf("enter the client id you want to send to:  ");
                 int client_id;
+                std::string line;
                 std::cin>>client_id;
                 std::cout<<"Please enter message:\n";
-                scanf("\n");
-                fgets(m.info,MAXLEN,stdin);  // 先输入目标client id ，再输入des
-                snprintf(m.info,MAXLEN,"%d%s",client_id,m.info);
+                std::cin.ignore();
+                std::getline(std::cin,line);
+                memcpy(m.info,&client_id,sizeof(int));
+                snprintf(m.info+sizeof(int),MAXLEN,"%s",line.c_str());
                 m.type = 's';
+                mutexLen.lock();
+                sendLen = line.length();
                 sem_post(&bin_sem);
                 break;
             }
@@ -202,10 +209,12 @@ void *thread_sender(void *arg) {
         // std::cout<<"in: "<<value<<std::endl;
         if(m.type=='s')
         {
-            send(sockfd, &m, 1,0);
+            send(sockfd, &m, sendLen,0);
+            mutexLen.unlock();
         }
-        else
+        else{
             send(sockfd, &m, 1,0);  // 修改
+        }
         if(m.type=='d')
             pthread_exit(NULL);
         sem_wait(&bin_sem);  

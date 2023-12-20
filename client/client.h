@@ -15,7 +15,8 @@ private:
     sock client_sock;
     
 public:
-    client(char *serAddress,int port);
+    client(){};
+    void c_connect(const char *serAddress,int port);
     pthread_t create_thread(void *(*thread_function)(void *));
     int get_clientsockid(){
         return client_sock.get_sockid();
