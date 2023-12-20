@@ -4,7 +4,7 @@ char* name = "my_server";
 server::server() : server_sock{}{
     struct sockaddr_in addr;  // 存储服务器的地址信息
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY); // 服务器将监听任何可用的网络接口，而不仅仅是绑定到一个特定的IP地址
+    addr.sin_addr.s_addr = inet_addr("127.0.0.53"); // 修改为本机IP
     addr.sin_port = htons(port); // 将端口号从主机字节序转换为网络字节序
     server_sock.sock_bind((struct sockaddr *) &addr, sizeof(addr));
     server_sock.sock_listen();
@@ -47,7 +47,9 @@ void *client_process(void * ptr){
     std::cout << "connect established:" << std::endl  << "client_sock:" <<  client_fd <<std::endl;
     while(1)
     {
-        bytegot = recv(client_fd, buf, MAXLEN, 0);
+        std::cout<<"server read again"<<std::endl;
+        
+        bytegot = recv(client_fd, buf, MAXLEN, 0);  // 返回长度
         if(bytegot <= 0 )
         {
             std::cout << "something wrong" << std::endl;
@@ -64,14 +66,18 @@ void *client_process(void * ptr){
             std::cout << "time request from " << client_fd << std::endl;
             m.type = 't';
             time_t currentTime;
+            char* response;
             time(&currentTime);
-            memcpy(m.info,&currentTime, sizeof(currentTime));
-            send(client_fd, &m, 1 + sizeof(currentTime), 0);
+            response = ctime(&currentTime);
+            
+            strcpy(m.info,response);
+            send(client_fd, &m, 1 + strlen(response), 0);
         }
         else if(client_type == 'n')
         {
             std::cout << "name request from " << client_fd << std::endl;
             m.type = 'n';
+
             memcpy(m.info, name, strlen(name));
             send(client_fd, &m, 1 + strlen(name),0);
         }
@@ -90,6 +96,15 @@ void *client_process(void * ptr){
                 memcpy(m.info+pos, &it.first, sizeof(int));
                 pos += 4;
             }
+
+            std::cout<<"list item:"<<std::endl;
+            // pos = 0;
+            // for(auto it:temp)
+            // {
+            //     std::cout<<*(m.info+pos)<<std::endl;
+            //     pos+=4;
+            // }
+            std::cout<<m.info<<std::endl;
             send(client_fd, &m, 1 + pos ,0);
 
         }
@@ -99,7 +114,7 @@ void *client_process(void * ptr){
             bool find = false;
 
             m.type = 's'; //transfer message
-            tm.type = 'm';
+            // tm.type = 'm';
 
             mapMutex.lock();
             auto it = clients.find(next_fd);
@@ -109,27 +124,32 @@ void *client_process(void * ptr){
             if(find = false)
             {
                 std::cout << "client not found" << std::endl;
+                m.type = 'u';
                 strncpy(m.info, "send unsuccessfully", MAXLEN);
                 send(client_fd, &m, 1 + strlen("send unsuccessfully"),0);
             } 
             else // ID|IP|message
             {
-                char addr_str[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, &(new_client->addr.sin_addr), addr_str, INET_ADDRSTRLEN);
-                snprintf(tm.info, sizeof(tm.info), "%d%s", client_fd,addr_str);
-                strncat(tm.info, buf + 1 + sizeof(int), bytegot - 1- sizeof(int));
-                if(send(next_fd,&m,strlen(m.info),0)>0)// 这里信息会不会太长？
-                {
-                    strncpy(m.info, "send successfully", MAXLEN);
-                    send(client_fd, &m, 1 + strlen("send successfully"),0);
-                }
+                send(next_fd,buf + 1 + sizeof(int),bytegot - 1- sizeof(int),0);
+                // char addr_str[INET_ADDRSTRLEN];
+                // inet_ntop(AF_INET, &(new_client->addr.sin_addr), addr_str, INET_ADDRSTRLEN);
+                // snprintf(tm.info, sizeof(tm.info), "%d%s", client_fd,addr_str);
+                // strncat(tm.info, buf + 1 + sizeof(int), bytegot - 1- sizeof(int));
+                // if(send(next_fd,&m,strlen(m.info),0)>0)// 这里信息会不会太长？
+                // {
+                //     strncpy(m.info, "send successfully", MAXLEN);
+                //     send(client_fd, &m, 1 + strlen("send successfully"),0);
+                // }
             } 
         }
         else if(client_type == 'd')
         {
+            m.type = 'd';
+            send(client_fd, &m, 1,0);
+
             close(client_fd);
 
-            std::cout<< "client_server " << client_fd << " closed" << std::endl;
+            std::cout<< "client_server " << client_fd << "closed" << std::endl;
 
             pthread_exit(NULL);
         }
