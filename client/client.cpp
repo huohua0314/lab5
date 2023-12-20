@@ -157,7 +157,7 @@ int main(int argc,char * argv[]) // argv[0]是文件名，argv[1]是第一个参
                 snprintf(m.info+sizeof(int),MAXLEN,"%s",line.c_str());
                 m.type = 's';
                 mutexLen.lock();
-                sendLen = line.length();
+                sendLen = line.length() + 1 + sizeof(int);
                 sem_post(&bin_sem);
                 break;
             }
