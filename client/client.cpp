@@ -265,6 +265,10 @@ int getMessage(message* m,int client_sockfd){
         std::cout << "Disconnect acknowledgement from server"<<std::endl;
 
     }
+    else if(client_type == 'm')
+    {
+        std::cout<<"receive from "<<inform.substr(1,bytegot-1)<<std::endl;
+    }
     else{
         std::cout << "message type error" << std::endl;
         return 0;
