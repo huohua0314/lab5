@@ -140,16 +140,17 @@ void *client_process(void * ptr){
             } 
             else // ID|IP|message
             {
-                send(next_fd,buf + 1 + sizeof(int),bytegot - 1- sizeof(int),0);
-                // char addr_str[INET_ADDRSTRLEN];
-                // inet_ntop(AF_INET, &(new_client->addr.sin_addr), addr_str, INET_ADDRSTRLEN);
-                // snprintf(tm.info, sizeof(tm.info), "%d%s", client_fd,addr_str);
-                // strncat(tm.info, buf + 1 + sizeof(int), bytegot - 1- sizeof(int));
-                // if(send(next_fd,&m,strlen(m.info),0)>0)// 这里信息会不会太长？
-                // {
-                //     strncpy(m.info, "send successfully", MAXLEN);
-                //     send(client_fd, &m, 1 + strlen("send successfully"),0);
-                // }
+                char addr_str[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &(new_client->addr.sin_addr), addr_str, INET_ADDRSTRLEN);
+                snprintf(tm.info, sizeof(tm.info), "%d%s", client_fd,addr_str);
+                strncat(tm.info, buf + 1 + sizeof(int), bytegot - 1- sizeof(int));
+                std::cout<<"tm.info: "<<tm.info<<std::endl; // 正确的tm.info
+                std::cout<<"len: "<<strlen(tm.info);
+                if(send(next_fd,&tm,1+strlen(tm.info),0)>0)
+                {
+                    strncpy(m.info, "send successfully", MAXLEN);
+                    send(client_fd, &m, 1 + strlen("send successfully"),0);
+                }
             } 
         }
         else if(client_type == 'd')
