@@ -142,10 +142,8 @@ void *client_process(void * ptr){
             {
                 char addr_str[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &(new_client->addr.sin_addr), addr_str, INET_ADDRSTRLEN);
-                snprintf(tm.info, sizeof(tm.info), "%d%s", client_fd,addr_str);
+                snprintf(tm.info, sizeof(tm.info), "SOCKET_ID: %d  IP: %s message: ", client_fd,addr_str);
                 strncat(tm.info, buf + 1 + sizeof(int), bytegot - 1- sizeof(int));
-                std::cout<<"tm.info: "<<tm.info<<std::endl; // 正确的tm.info
-                std::cout<<"len: "<<strlen(tm.info);
                 if(send(next_fd,&tm,1+strlen(tm.info),0)>0)
                 {
                     strncpy(m.info, "send successfully", MAXLEN);
